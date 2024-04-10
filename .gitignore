@@ -31,3 +31,6 @@ build/
 
 ### VS Code ###
 .vscode/
+
+java/resources/application.properties
+java/resources/client.properties
