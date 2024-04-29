@@ -61,8 +61,8 @@ public class TopicController {
         }
         topic.setOwner(optionalClient.get());
         topic.setChapter(optionalChapter.get());
-        topicRepository.save(topic);
-        return ResponseEntity.status(HttpStatus.OK).body("Тема успешно добавлена");
+        Topic addedTopic = topicRepository.save(topic);
+        return ResponseEntity.ok(addedTopic);
     }
 
     @PostMapping("/update")
@@ -90,8 +90,8 @@ public class TopicController {
         } else {
             rating.setCreator(optionalClient.get());
             rating.setTopic(optionalTopic.get());
-            ratingRepository.save(rating);
-            return ResponseEntity.status(HttpStatus.OK).body("Оценка успешно добавлена");
+            Rating addedRating = ratingRepository.save(rating);
+            return ResponseEntity.ok(addedRating);
         }
     }
 
@@ -126,7 +126,6 @@ public class TopicController {
     }
 
     @PostMapping("/add/subscription/{topicId}")
-    @Transactional
     public ResponseEntity<?> addSubscription(@RequestAttribute(name = "Cid") Integer CID,
                                              @PathVariable Integer topicId) {
         Optional<Client> optionalClient = clientRepository.findById(CID);
@@ -148,8 +147,8 @@ public class TopicController {
             subscription.setId(subscriptionId);
             subscription.setClient(optionalClient.get());
             subscription.setTopic(optionalTopic.get());
-            subscriptionRepository.save(subscription);
-            return ResponseEntity.status(HttpStatus.OK).body("Подписка успешно оформлена");
+            Subscription addedSubscription = subscriptionRepository.save(subscription);
+            return ResponseEntity.ok(addedSubscription);
         }
     }
 

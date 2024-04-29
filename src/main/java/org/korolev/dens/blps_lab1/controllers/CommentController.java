@@ -1,6 +1,5 @@
 package org.korolev.dens.blps_lab1.controllers;
 
-import jakarta.transaction.Transactional;
 import org.korolev.dens.blps_lab1.entites.*;
 import org.korolev.dens.blps_lab1.repositories.*;
 import org.springframework.http.HttpStatus;
@@ -38,7 +37,6 @@ public class CommentController {
     }
 
     @PostMapping("/add/{topicId}/{quoteId}")
-    @Transactional
     public ResponseEntity<?> addComment(@RequestBody Comment comment, @PathVariable Integer topicId,
                                         @PathVariable Integer quoteId, @RequestAttribute(name = "Cid") Integer CID) {
         if (quoteId > 0) {
@@ -57,7 +55,7 @@ public class CommentController {
         }
         comment.setCommentator(optionalClient.get());
         comment.setTopic(optionalTopic.get());
-        commentRepository.save(comment);
+        Comment addedComment = commentRepository.save(comment);
 
         List<Subscription> subscriptions = subscriptionRepository.findAllByTopic(optionalTopic.get());
         for (Subscription subscription : subscriptions) {
@@ -69,7 +67,7 @@ public class CommentController {
                     + " добавил комментарий к теме " + optionalTopic.get().getTitle());
             notificationRepository.save(notification);
         }
-        return ResponseEntity.status(HttpStatus.OK).body("Комментарий успешно добавлен");
+        return ResponseEntity.ok(addedComment);
     }
 
 }

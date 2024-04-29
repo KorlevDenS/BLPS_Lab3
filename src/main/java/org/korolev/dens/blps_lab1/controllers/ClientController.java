@@ -1,6 +1,5 @@
 package org.korolev.dens.blps_lab1.controllers;
 
-import jakarta.transaction.Transactional;
 import org.korolev.dens.blps_lab1.entites.Client;
 import org.korolev.dens.blps_lab1.entites.Notification;
 import org.korolev.dens.blps_lab1.repositories.ClientRepository;
@@ -35,7 +34,6 @@ public class ClientController {
     }
 
     @PostMapping("/register")
-    @Transactional
     public ResponseEntity<?> registerClient(@RequestBody Client client) {
         System.out.println(client.getLogin());
         System.out.println(client.getEmail());
@@ -52,7 +50,6 @@ public class ClientController {
     }
 
     @PostMapping("/login")
-    @Transactional
     public ResponseEntity<?> loginClient(@RequestBody ClientLoginRequest clientLoginRequest) {
         Optional<Client> optionalClient = clientRepository.findByLogin(clientLoginRequest.login());
         if (optionalClient.isPresent()) {

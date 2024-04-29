@@ -1,6 +1,5 @@
 package org.korolev.dens.blps_lab1.controllers;
 
-import jakarta.transaction.Transactional;
 import org.korolev.dens.blps_lab1.entites.Chapter;
 import org.korolev.dens.blps_lab1.entites.Client;
 import org.korolev.dens.blps_lab1.repositories.ChapterRepository;
@@ -26,15 +25,14 @@ public class ChapterController {
     }
 
     @PostMapping("/add")
-    @Transactional
     public ResponseEntity<?> addChapter(@RequestBody Chapter chapter, @RequestAttribute(name = "Cid") Integer CID) {
         Optional<Client> optionalClient = clientRepository.findById(CID);
         if (optionalClient.isEmpty()) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Пользователь не авторизован");
         }
         chapter.setCreator(optionalClient.get());
-        chapterRepository.save(chapter);
-        return ResponseEntity.status(HttpStatus.OK).body("Раздел успешно добавлен");
+        Chapter addedChapter = chapterRepository.save(chapter);
+        return ResponseEntity.ok(addedChapter);
     }
 
     @GetMapping("/get/all")
