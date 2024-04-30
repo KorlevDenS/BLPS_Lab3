@@ -28,7 +28,7 @@ public class Client {
     @Column(name = "id", nullable = false)
     private Integer id;
 
-    //TODO login validation
+    @NotBlank
     @Column(name = "login", nullable = false, length = Integer.MAX_VALUE)
     private String login;
 
