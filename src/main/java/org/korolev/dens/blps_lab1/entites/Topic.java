@@ -7,6 +7,8 @@ import lombok.Setter;
 import org.hibernate.annotations.ColumnDefault;
 import org.hibernate.annotations.OnDelete;
 import org.hibernate.annotations.OnDeleteAction;
+import org.springframework.data.annotation.CreatedDate;
+import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 import java.time.LocalDate;
 import java.util.LinkedHashSet;
@@ -16,6 +18,7 @@ import java.util.Set;
 @Setter
 @Entity
 @Table(name = "topic")
+@EntityListeners(AuditingEntityListener.class)
 public class Topic {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -39,6 +42,7 @@ public class Topic {
     @JoinColumn(name = "owner")
     private Client owner;
 
+    @CreatedDate
     @Column(name = "created", nullable = false)
     private LocalDate created;
 

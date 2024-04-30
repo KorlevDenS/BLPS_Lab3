@@ -10,6 +10,7 @@ import org.korolev.dens.blps_lab1.services.JwtTokenService;
 import org.korolev.dens.blps_lab1.services.PasswordService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -34,17 +35,10 @@ public class ClientController {
     }
 
     @PostMapping("/register")
-    public ResponseEntity<?> registerClient(@RequestBody Client client) {
-        System.out.println(client.getLogin());
-        System.out.println(client.getEmail());
+    public ResponseEntity<?> registerClient(@RequestBody @Validated(Client.New.class) Client client) {
         client.setPassword(passwordService.makeBCryptHash(client.getPassword()));
         Client savedClient;
-        try {
-            savedClient = clientRepository.save(client);
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                    .body("Пользователь с таким login или email уже существует");
-        }
+        savedClient = clientRepository.save(client);
         String jwt = jwtTokenService.generateToken(savedClient.getId(), "futureRole");
         return ResponseEntity.ok(new JwtAuthenticationResponse(jwt));
     }

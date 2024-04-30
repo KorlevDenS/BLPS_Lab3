@@ -3,9 +3,13 @@ package org.korolev.dens.blps_lab1.entites;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.persistence.*;
+import jakarta.validation.constraints.*;
 import lombok.Getter;
 import lombok.Setter;
 import org.hibernate.annotations.ColumnDefault;
+import org.korolev.dens.blps_lab1.exceptions.ClientPassword;
+import org.springframework.data.annotation.CreatedDate;
+import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 import java.time.LocalDate;
 import java.util.LinkedHashSet;
@@ -15,6 +19,7 @@ import java.util.Set;
 @Setter
 @Entity
 @Table(name = "client")
+@EntityListeners(AuditingEntityListener.class)
 public class Client {
     @JsonIgnore
     @Id
@@ -23,13 +28,16 @@ public class Client {
     @Column(name = "id", nullable = false)
     private Integer id;
 
+    //TODO login validation
     @Column(name = "login", nullable = false, length = Integer.MAX_VALUE)
     private String login;
 
+    @ClientPassword(groups = {New.class})
     @JsonProperty(access = JsonProperty.Access.WRITE_ONLY)
     @Column(name = "password", nullable = false, length = Integer.MAX_VALUE)
     private String password;
 
+    @Email(message = "Невалидный email")
     @JsonProperty(access = JsonProperty.Access.WRITE_ONLY)
     @Column(name = "email", nullable = false, length = Integer.MAX_VALUE)
     private String email;
@@ -38,9 +46,11 @@ public class Client {
     @Column(name = "sex", length = 3)
     private String sex;
 
+    @CreatedDate
     @Column(name = "registered", nullable = false)
     private LocalDate registered;
 
+    @Past(message = "День рождения должен быть в прошлом")
     @Column(name = "birthday", nullable = false)
     private LocalDate birthday;
 
@@ -67,5 +77,8 @@ public class Client {
     @JsonIgnore
     @OneToMany(mappedBy = "owner")
     private Set<Topic> topics = new LinkedHashSet<>();
+
+    public interface New {
+    }
 
 }

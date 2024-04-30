@@ -5,6 +5,8 @@ import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
 import org.hibernate.annotations.ColumnDefault;
+import org.springframework.data.annotation.CreatedDate;
+import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 import java.time.LocalDate;
 import java.util.LinkedHashSet;
@@ -14,6 +16,7 @@ import java.util.Set;
 @Setter
 @Entity
 @Table(name = "comment")
+@EntityListeners(AuditingEntityListener.class)
 public class Comment {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -29,6 +32,7 @@ public class Comment {
     @JoinColumn(name = "commentator")
     private Client commentator;
 
+    @CreatedDate
     @Column(name = "created", nullable = false)
     private LocalDate created;
 

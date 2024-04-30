@@ -6,6 +6,7 @@ import org.korolev.dens.blps_lab1.repositories.*;
 import org.korolev.dens.blps_lab1.services.TopicUpdateService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -73,7 +74,7 @@ public class TopicController {
 
     @Transactional
     @PostMapping("/add/rating/{topicId}")
-    public ResponseEntity<?> addRating(@RequestBody Rating rating, @RequestAttribute(name = "Cid") Integer CID,
+    public ResponseEntity<?> addRating(@RequestBody @Validated Rating rating, @RequestAttribute(name = "Cid") Integer CID,
                                        @PathVariable Integer topicId) {
         Optional<Client> optionalClient = clientRepository.findById(CID);
         Optional<Topic> optionalTopic = topicRepository.findById(topicId);
