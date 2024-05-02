@@ -4,4 +4,6 @@ drop table comment;
 drop table rating;
 drop table topic;
 drop table chapter;
+drop table permission;
+drop table role;
 drop table client;

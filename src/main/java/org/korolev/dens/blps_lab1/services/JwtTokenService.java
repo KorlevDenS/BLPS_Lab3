@@ -1,11 +1,13 @@
 package org.korolev.dens.blps_lab1.services;
 
-import org.korolev.dens.blps_lab1.exceptions.InvalidTokenException;
+import org.springframework.security.core.userdetails.UserDetails;
 
 public interface JwtTokenService {
 
-    public String generateToken(Integer subjectId, String role);
+    String generateToken(String userName);
 
-    public Integer verifyToken(String token) throws InvalidTokenException;
+    Boolean verifyToken(String token, UserDetails userDetails);
+
+    String extractUserName(String token);
 
 }

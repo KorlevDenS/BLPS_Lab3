@@ -6,10 +6,12 @@ import org.korolev.dens.blps_lab1.repositories.ClientRepository;
 import org.korolev.dens.blps_lab1.repositories.NotificationRepository;
 import org.korolev.dens.blps_lab1.requests.ClientLoginRequest;
 import org.korolev.dens.blps_lab1.responces.JwtAuthenticationResponse;
+import org.korolev.dens.blps_lab1.security.ClientService;
 import org.korolev.dens.blps_lab1.services.JwtTokenService;
-import org.korolev.dens.blps_lab1.services.PasswordService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
@@ -20,40 +22,35 @@ import java.util.Optional;
 @RequestMapping("/client")
 public class ClientController {
 
-    private final PasswordService passwordService;
+    private final AuthenticationManager authenticationManager;
     private final ClientRepository clientRepository;
     private final JwtTokenService jwtTokenService;
     private final NotificationRepository notificationRepository;
 
-    public ClientController(PasswordService passwordService,
+    private final ClientService clientService;
+
+    public ClientController(AuthenticationManager authenticationManager,
                             ClientRepository clientRepository, JwtTokenService jwtTokenService,
-                            NotificationRepository notificationRepository) {
-        this.passwordService = passwordService;
+                            NotificationRepository notificationRepository, ClientService clientService) {
+        this.clientService = clientService;
         this.clientRepository = clientRepository;
         this.jwtTokenService = jwtTokenService;
         this.notificationRepository = notificationRepository;
+        this.authenticationManager = authenticationManager;
     }
 
     @PostMapping("/register")
-    public ResponseEntity<?> registerClient(@RequestBody @Validated(Client.New.class) Client client) {
-        client.setPassword(passwordService.makeBCryptHash(client.getPassword()));
-        Client savedClient;
-        savedClient = clientRepository.save(client);
-        String jwt = jwtTokenService.generateToken(savedClient.getId(), "futureRole");
-        return ResponseEntity.ok(new JwtAuthenticationResponse(jwt));
+    public ResponseEntity<?> registerClientN(@RequestBody @Validated(Client.New.class) Client client) {
+        return clientService.addClient(client);
     }
 
     @PostMapping("/login")
     public ResponseEntity<?> loginClient(@RequestBody ClientLoginRequest clientLoginRequest) {
-        Optional<Client> optionalClient = clientRepository.findByLogin(clientLoginRequest.login());
-        if (optionalClient.isPresent()) {
-            Client client = optionalClient.get();
-            if (passwordService.checkIdentity(clientLoginRequest.password(), client.getPassword())) {
-                String jwt = jwtTokenService.generateToken(client.getId(), "futureRole");
-                return ResponseEntity.ok(new JwtAuthenticationResponse(jwt));
-            }
-        }
-        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Неверное имя пользователя или пароль");
+        authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(
+                clientLoginRequest.login(), clientLoginRequest.password()
+        ));
+        return ResponseEntity
+                .ok(new JwtAuthenticationResponse(jwtTokenService.generateToken(clientLoginRequest.login())));
     }
 
     @GetMapping("/get/notifications")

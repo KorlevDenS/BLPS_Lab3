@@ -78,6 +78,12 @@ public class Client {
     @OneToMany(mappedBy = "owner")
     private Set<Topic> topics = new LinkedHashSet<>();
 
+    @ManyToMany(fetch = FetchType.EAGER)
+    @JoinTable(name = "permission",
+            joinColumns = @JoinColumn(name = "client"),
+            inverseJoinColumns = @JoinColumn(name = "role"))
+    private Set<Role> roles = new LinkedHashSet<>();
+
     public interface New {
     }
 

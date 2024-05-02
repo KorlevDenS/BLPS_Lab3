@@ -55,3 +55,17 @@ create table subscription (
     topic integer references topic,
     primary key(client, topic)
 );
+
+create table role (
+    id serial primary key,
+    name varchar not null
+);
+
+insert into role (name) values ('USER');
+insert into role (name) values ('ADMIN');
+
+create table permission (
+    client integer references client on delete cascade not null,
+    role integer references role,
+    primary key(client, role)
+);
