@@ -66,8 +66,14 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         return http.csrf(AbstractHttpConfigurer::disable)
-                .authorizeHttpRequests(auth -> auth.requestMatchers("client/register", "client/login").permitAll())
-                .authorizeHttpRequests(auth -> auth.requestMatchers("chapter/get/all").authenticated())
+                .authorizeHttpRequests(auth -> auth.requestMatchers(
+                        "client/register",
+                        "client/login",
+                        "chapter/get/all",
+                        "comment/get/all/by/topic/*",
+                        "topic/get/all/by/chapter/*",
+                        "topic/get/by/id/*").permitAll())
+                .authorizeHttpRequests(auth -> auth.anyRequest().authenticated())
                 .sessionManagement(sess -> sess.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authenticationProvider(authenticationProvider())
                 .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class)

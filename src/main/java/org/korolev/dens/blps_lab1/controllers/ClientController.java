@@ -10,8 +10,11 @@ import org.korolev.dens.blps_lab1.security.ClientService;
 import org.korolev.dens.blps_lab1.services.JwtTokenService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
@@ -53,9 +56,10 @@ public class ClientController {
                 .ok(new JwtAuthenticationResponse(jwtTokenService.generateToken(clientLoginRequest.login())));
     }
 
+    @PreAuthorize("hasRole('USER')")
     @GetMapping("/get/notifications")
-    public ResponseEntity<?> getClientNotifications(@RequestAttribute(name = "Cid") Integer CID) {
-        Optional<Client> optionalClient = clientRepository.findById(CID);
+    public ResponseEntity<?> getClientNotifications(@AuthenticationPrincipal UserDetails userDetails) {
+        Optional<Client> optionalClient = clientRepository.findByLogin(userDetails.getUsername());
         if (optionalClient.isEmpty()) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Пользователь не авторизован");
         } else {

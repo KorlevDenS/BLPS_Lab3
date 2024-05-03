@@ -14,11 +14,11 @@ public interface TopicRepository extends JpaRepository<Topic, Integer> {
     List<Topic> getAllByChapter(@Param("chapterId") Integer chapterId);
 
     @Modifying
-    @Query(value = "update topic set title = :title where id = :topicId and owner = :Cid", nativeQuery = true)
-    void updateTitle(@Param("topicId") Integer topicId, @Param("title") String title, @Param("Cid") Integer CID);
+    @Query(value = "update Topic topic set topic.title = :title where topic.id = :topicId and topic.owner.login = :login")
+    void updateTitle(@Param("topicId") Integer topicId, @Param("title") String title, @Param("login") String login);
 
     @Modifying
-    @Query(value = "update topic set text = :text where id = :topicId and owner = :Cid", nativeQuery = true)
-    void updateText(@Param("topicId") Integer topicId, @Param("text") String text, @Param("Cid") Integer CID);
+    @Query(value = "update Topic topic set topic.text = :text where topic.id = :topicId and topic.owner.login = :login")
+    void updateText(@Param("topicId") Integer topicId, @Param("text") String text, @Param("login") String login);
 
 }

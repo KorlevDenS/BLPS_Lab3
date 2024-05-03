@@ -48,7 +48,7 @@ public class ClientService implements UserDetailsService {
     public ResponseEntity<?> addClient(Client client) {
         client.setPassword(passwordService.makeBCryptHash(client.getPassword()));
         Client savedClient = clientRepository.save(client);
-        Role userRole = roleRepository.findByName("USER");
+        Role userRole = roleRepository.findByName("ROLE_USER");
         Permission permission = new Permission();
         PermissionId permissionId = new PermissionId();
         permissionId.setRole(userRole.getId());

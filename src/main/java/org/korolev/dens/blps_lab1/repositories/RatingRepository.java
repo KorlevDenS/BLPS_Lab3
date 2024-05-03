@@ -18,8 +18,10 @@ public interface RatingRepository extends JpaRepository<Rating, Integer> {
     List<Rating> findAllByTopic(Topic topic);
 
     @Modifying
-    @Query(value = "update rating set rating = :rating where topic = :topicId and creator = :Cid", nativeQuery = true)
-    void updateRatingByClientAndTopic(@Param("Cid") Integer CID, @Param("rating") Integer rating,
+    @Query(value = """
+                update Rating rating set rating.rating = :rating where rating.topic.id = :topicId
+                and rating.creator.login = :login""")
+    void updateRatingByClientAndTopic(@Param("login") String login, @Param("rating") Integer rating,
                               @Param("topicId") Integer topicId);
 
 }

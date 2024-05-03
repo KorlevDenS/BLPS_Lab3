@@ -61,8 +61,8 @@ create table role (
     name varchar not null
 );
 
-insert into role (name) values ('USER');
-insert into role (name) values ('ADMIN');
+insert into role (name) values ('ROLE_USER');
+insert into role (name) values ('ROLE_ADMIN');
 
 create table permission (
     client integer references client on delete cascade not null,

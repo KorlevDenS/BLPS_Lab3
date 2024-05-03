@@ -19,12 +19,12 @@ public class TopicUpdateServiceImpl implements TopicUpdateService {
 
     @Transactional
     @Override
-    public void updateTopic(Topic originalTopic, Topic updatedTopic, Integer CID) {
+    public void updateTopic(Topic originalTopic, Topic updatedTopic, String login) {
         if (!Objects.equals(originalTopic.getTitle(), updatedTopic.getTitle())) {
-            topicRepository.updateTitle(originalTopic.getId(), updatedTopic.getTitle(), CID);
+            topicRepository.updateTitle(originalTopic.getId(), updatedTopic.getTitle(), login);
         }
         if (!Objects.equals(originalTopic.getText(), updatedTopic.getText())) {
-            topicRepository.updateText(originalTopic.getId(), updatedTopic.getText(), CID);
+            topicRepository.updateText(originalTopic.getId(), updatedTopic.getText(), login);
         }
     }
 

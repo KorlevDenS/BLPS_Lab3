@@ -4,6 +4,9 @@ import org.korolev.dens.blps_lab1.entites.*;
 import org.korolev.dens.blps_lab1.repositories.*;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -32,13 +35,17 @@ public class CommentController {
     }
 
     @GetMapping("/get/all/by/topic/{topicId}")
-    public List<Comment> getAllByTopic(@PathVariable Integer topicId) {
-        return commentRepository.getAllByTopic(topicId);
+    public ResponseEntity<?> getAllByTopic(@PathVariable Integer topicId) {
+        if (topicRepository.findById(topicId).isEmpty()) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Topic with id " + topicId + " not found");
+        }
+        return ResponseEntity.ok(commentRepository.getAllByTopic(topicId));
     }
 
+    @PreAuthorize("hasRole('USER')")
     @PostMapping("/add/{topicId}/{quoteId}")
-    public ResponseEntity<?> addComment(@RequestBody Comment comment, @PathVariable Integer topicId,
-                                        @PathVariable Integer quoteId, @RequestAttribute(name = "Cid") Integer CID) {
+    public ResponseEntity<?> addComment(@AuthenticationPrincipal UserDetails userDetails, @PathVariable Integer topicId,
+                                        @PathVariable Integer quoteId, @RequestBody Comment comment) {
         if (quoteId > 0) {
             Optional<Comment> optionalComment = commentRepository.findById(quoteId);
             if (optionalComment.isEmpty()) {
@@ -47,7 +54,7 @@ public class CommentController {
             comment.setQuote(optionalComment.get());
         }
         Optional<Topic> optionalTopic = topicRepository.findById(topicId);
-        Optional<Client> optionalClient = clientRepository.findById(CID);
+        Optional<Client> optionalClient = clientRepository.findByLogin(userDetails.getUsername());
         if (optionalClient.isEmpty()) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Пользователь не авторизован");
         } else if (optionalTopic.isEmpty()) {

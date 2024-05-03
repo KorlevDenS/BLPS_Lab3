@@ -6,6 +6,9 @@ import org.korolev.dens.blps_lab1.repositories.ChapterRepository;
 import org.korolev.dens.blps_lab1.repositories.ClientRepository;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -24,9 +27,11 @@ public class ChapterController {
         this.chapterRepository = chapterRepository;
     }
 
+    @PreAuthorize("hasRole('USER')")
     @PostMapping("/add")
-    public ResponseEntity<?> addChapter(@RequestBody Chapter chapter, @RequestAttribute(name = "Cid") Integer CID) {
-        Optional<Client> optionalClient = clientRepository.findById(CID);
+    public ResponseEntity<?> addChapter(@RequestBody Chapter chapter,
+                                        @AuthenticationPrincipal UserDetails userDetails) {
+        Optional<Client> optionalClient = clientRepository.findByLogin(userDetails.getUsername());
         if (optionalClient.isEmpty()) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Пользователь не авторизован");
         }

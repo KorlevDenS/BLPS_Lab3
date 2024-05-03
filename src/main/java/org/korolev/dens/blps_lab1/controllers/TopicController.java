@@ -6,10 +6,12 @@ import org.korolev.dens.blps_lab1.repositories.*;
 import org.korolev.dens.blps_lab1.services.TopicUpdateService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.List;
 import java.util.Optional;
 
 @RestController
@@ -37,28 +39,32 @@ public class TopicController {
     }
 
     @GetMapping("/get/all/by/chapter/{chapterId}")
-    public List<Topic> getAllTopicsByChapter(@PathVariable Integer chapterId) {
-        return topicRepository.getAllByChapter(chapterId);
+    public ResponseEntity<?> getAllTopicsByChapter(@PathVariable Integer chapterId) {
+        if (chapterRepository.findById(chapterId).isEmpty()) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("No chapter with id " + chapterId);
+        }
+        return ResponseEntity.ok(topicRepository.getAllByChapter(chapterId));
     }
 
     @GetMapping("get/by/id/{topicId}")
     public ResponseEntity<?> getTopicById(@PathVariable Integer topicId) {
         Optional<Topic> optionalTopic = topicRepository.findById(topicId);
         if (optionalTopic.isEmpty()) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Такой темы не существует");
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("No topic with id " + topicId);
         }
         return ResponseEntity.ok(optionalTopic.get());
     }
 
+    @PreAuthorize("hasRole('USER')")
     @PostMapping("/add/{chapterId}")
-    public ResponseEntity<?> addTopic(@RequestBody Topic topic, @RequestAttribute(name = "Cid") Integer CID,
-                                      @PathVariable Integer chapterId) {
+    public ResponseEntity<?> addTopic(@RequestBody Topic topic, @PathVariable Integer chapterId,
+                                      @AuthenticationPrincipal UserDetails userDetails) {
         Optional<Chapter> optionalChapter = chapterRepository.findById(chapterId);
-        Optional<Client> optionalClient = clientRepository.findById(CID);
+        Optional<Client> optionalClient = clientRepository.findByLogin(userDetails.getUsername());
         if (optionalClient.isEmpty()) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Пользователь не авторизован");
         } else if (optionalChapter.isEmpty()) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Раздел для темы не существует");
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("No chapter with id " + chapterId);
         }
         topic.setOwner(optionalClient.get());
         topic.setChapter(optionalChapter.get());
@@ -66,17 +72,31 @@ public class TopicController {
         return ResponseEntity.ok(addedTopic);
     }
 
+    @PreAuthorize("hasRole('USER')")
     @PostMapping("/update")
-    public ResponseEntity<?> updateTopic(@RequestBody List<Topic> topics, @RequestAttribute(name = "Cid") Integer CID) {
-        topicUpdateService.updateTopic(topics.get(0), topics.get(1), CID);
-        return ResponseEntity.status(HttpStatus.OK).body("Тема успешно обновлена");
+    public ResponseEntity<?> updateTopic(@Validated @RequestBody Topic topic,
+                                         @AuthenticationPrincipal UserDetails userDetails) {
+        Optional<Topic> optionalTopic = topicRepository.findById(topic.getId());
+        if (optionalTopic.isEmpty()) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("No topic with id " + topic.getId());
+        }
+        if (!(optionalTopic.get().getOwner().getLogin().equals(userDetails.getUsername()))) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body("Topic with id " + topic.getId() + " is not yours");
+        }
+        topicUpdateService.updateTopic(optionalTopic.get(), topic, userDetails.getUsername());
+        Optional<Topic> optionalNewTopic = topicRepository.findById(topic.getId());
+        if (optionalNewTopic.isEmpty()) {
+            return ResponseEntity.status(HttpStatus.CONFLICT).body("Conflict while updating topic " + topic.getId());
+        }
+        return ResponseEntity.status(HttpStatus.OK).body("Topic " + topic.getId() + " has been updated");
     }
 
     @Transactional
+    @PreAuthorize("hasRole('USER')")
     @PostMapping("/add/rating/{topicId}")
-    public ResponseEntity<?> addRating(@RequestBody @Validated Rating rating, @RequestAttribute(name = "Cid") Integer CID,
-                                       @PathVariable Integer topicId) {
-        Optional<Client> optionalClient = clientRepository.findById(CID);
+    public ResponseEntity<?> addRating(@RequestBody @Validated Rating rating, @PathVariable Integer topicId,
+                                       @AuthenticationPrincipal UserDetails userDetails) {
+        Optional<Client> optionalClient = clientRepository.findByLogin(userDetails.getUsername());
         Optional<Topic> optionalTopic = topicRepository.findById(topicId);
         if (optionalClient.isEmpty()) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Пользователь не авторизован");
@@ -86,7 +106,7 @@ public class TopicController {
         Optional<Rating> optionalRating =
                 ratingRepository.findRatingByCreatorAndTopic(optionalClient.get(), optionalTopic.get());
         if (optionalRating.isPresent()) {
-            ratingRepository.updateRatingByClientAndTopic(CID, rating.getRating(), topicId);
+            ratingRepository.updateRatingByClientAndTopic(userDetails.getUsername(), rating.getRating(), topicId);
             return ResponseEntity.status(HttpStatus.OK).body("Оценка успешно обновлена");
         } else {
             rating.setCreator(optionalClient.get());
@@ -96,6 +116,7 @@ public class TopicController {
         }
     }
 
+    @PreAuthorize("hasRole('USER')")
     @GetMapping("/get/rating/{topicId}")
     public ResponseEntity<?> getRatingOfClients(@PathVariable Integer topicId) {
         Optional<Topic> optionalTopic = topicRepository.findById(topicId);
@@ -105,11 +126,12 @@ public class TopicController {
         return ResponseEntity.ok(ratingRepository.findAllByTopic(optionalTopic.get()));
     }
 
+    @PreAuthorize("hasRole('USER')")
     @DeleteMapping("/delete/subscription/{topicId}")
     @Transactional
-    public ResponseEntity<?> deleteSubscription(@RequestAttribute(name = "Cid") Integer CID,
+    public ResponseEntity<?> deleteSubscription(@AuthenticationPrincipal UserDetails userDetails,
                                                 @PathVariable Integer topicId) {
-        Optional<Client> optionalClient = clientRepository.findById(CID);
+        Optional<Client> optionalClient = clientRepository.findByLogin(userDetails.getUsername());
         Optional<Topic> optionalTopic = topicRepository.findById(topicId);
         if (optionalClient.isEmpty()) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Пользователь не авторизован");
@@ -126,10 +148,11 @@ public class TopicController {
         }
     }
 
+    @PreAuthorize("hasRole('USER')")
     @PostMapping("/add/subscription/{topicId}")
-    public ResponseEntity<?> addSubscription(@RequestAttribute(name = "Cid") Integer CID,
+    public ResponseEntity<?> addSubscription(@AuthenticationPrincipal UserDetails userDetails,
                                              @PathVariable Integer topicId) {
-        Optional<Client> optionalClient = clientRepository.findById(CID);
+        Optional<Client> optionalClient = clientRepository.findByLogin(userDetails.getUsername());
         Optional<Topic> optionalTopic = topicRepository.findById(topicId);
         if (optionalClient.isEmpty()) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Пользователь не авторизован");
@@ -143,7 +166,7 @@ public class TopicController {
         } else {
             Subscription subscription = new Subscription();
             SubscriptionId subscriptionId = new SubscriptionId();
-            subscriptionId.setClient(CID);
+            subscriptionId.setClient(optionalClient.get().getId());
             subscriptionId.setTopic(topicId);
             subscription.setId(subscriptionId);
             subscription.setClient(optionalClient.get());
