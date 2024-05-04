@@ -1,5 +1,6 @@
 package org.korolev.dens.blps_lab1.filters;
 
+import io.jsonwebtoken.ExpiredJwtException;
 import io.jsonwebtoken.security.SignatureException;
 import jakarta.annotation.Nullable;
 import jakarta.servlet.FilterChain;
@@ -23,6 +24,10 @@ public class ExceptionHandlerFilter extends OncePerRequestFilter {
             assert response != null;
             response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
             response.getWriter().write("Invalid jwt token");
+        } catch (ExpiredJwtException e) {
+            assert response != null;
+            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+            response.getWriter().write("Expired jwt token");
         }
     }
 
