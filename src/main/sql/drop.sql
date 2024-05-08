@@ -2,6 +2,7 @@ drop table subscription;
 drop table notification;
 drop table comment;
 drop table rating;
+drop table image;
 drop table topic;
 drop table chapter;
 drop table permission;

@@ -1,5 +1,6 @@
 package org.korolev.dens.blps_lab1.controllers;
 
+import jakarta.annotation.Nullable;
 import org.korolev.dens.blps_lab1.entites.*;
 import org.korolev.dens.blps_lab1.repositories.*;
 import org.korolev.dens.blps_lab1.services.TopicService;
@@ -10,6 +11,7 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.Optional;
 
@@ -18,21 +20,29 @@ import java.util.Optional;
 public class TopicController {
 
     private final TopicRepository topicRepository;
-    private final ClientRepository clientRepository;
     private final ChapterRepository chapterRepository;
     private final RatingRepository ratingRepository;
 
     private final TopicService topicService;
 
 
-    public TopicController(TopicRepository topicRepository, ClientRepository clientRepository,
+    public TopicController(TopicRepository topicRepository,
                            ChapterRepository chapterRepository, RatingRepository ratingRepository,
                            TopicService topicService) {
         this.topicRepository = topicRepository;
-        this.clientRepository = clientRepository;
         this.chapterRepository = chapterRepository;
         this.ratingRepository = ratingRepository;
         this.topicService = topicService;
+    }
+
+    @PostMapping("/multi")
+    public void getMultipart(@RequestParam("a1") String a1,
+                             @RequestParam("a2") String a2,
+                             @RequestParam("a3") String a3,
+                             @Nullable @RequestParam("a4") MultipartFile a4) {
+        System.out.println(a1 + " " + a2 + " " + a3);
+        System.out.println(System.getenv("PHOTO_STORAGE"));
+        if (a4 == null) System.out.println("NULL IMG");
     }
 
     @GetMapping("/get/all/by/chapter/{chapterId}")
@@ -54,19 +64,26 @@ public class TopicController {
 
     @PreAuthorize("hasRole('USER')")
     @PostMapping("/add/{chapterId}")
-    public ResponseEntity<?> addTopic(@RequestBody Topic topic, @PathVariable Integer chapterId,
-                                      @AuthenticationPrincipal UserDetails userDetails) {
-        Optional<Chapter> optionalChapter = chapterRepository.findById(chapterId);
-        Optional<Client> optionalClient = clientRepository.findByLogin(userDetails.getUsername());
-        if (optionalClient.isEmpty()) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Пользователь не авторизован");
-        } else if (optionalChapter.isEmpty()) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("No chapter with id " + chapterId);
+    public ResponseEntity<?> addTopic(@RequestParam("title") String title, @RequestParam("text") String text,
+                                      @PathVariable Integer chapterId,
+                                      @AuthenticationPrincipal UserDetails userDetails,
+                                      @RequestParam("img1") @Nullable MultipartFile img1,
+                                      @RequestParam("img2") @Nullable MultipartFile img2,
+                                      @RequestParam("img3") @Nullable MultipartFile img3) {
+        Topic topic = new Topic();
+        topic.setTitle(title);
+        topic.setText(text);
+        return topicService.add(topic, chapterId, userDetails.getUsername(), img1, img2, img3);
+    }
+
+    @PreAuthorize("hasRole('MODER')")
+    @DeleteMapping("/delete/{topicId}")
+    public ResponseEntity<?> deleteTopic(@PathVariable Integer topicId) {
+        if (topicRepository.findById(topicId).isEmpty()) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Topic with id " + topicId + " not found");
         }
-        topic.setOwner(optionalClient.get());
-        topic.setChapter(optionalChapter.get());
-        Topic addedTopic = topicRepository.save(topic);
-        return ResponseEntity.ok(addedTopic);
+        topicRepository.deleteById(topicId);
+        return ResponseEntity.ok("Topic with id " + topicId + " deleted successfully");
     }
 
     @PreAuthorize("hasRole('USER')")

@@ -27,7 +27,7 @@ public class ChapterController {
         this.chapterRepository = chapterRepository;
     }
 
-    @PreAuthorize("hasRole('USER')")
+    @PreAuthorize("hasRole('MODER')")
     @PostMapping("/add")
     public ResponseEntity<?> addChapter(@RequestBody Chapter chapter,
                                         @AuthenticationPrincipal UserDetails userDetails) {
@@ -38,6 +38,16 @@ public class ChapterController {
         chapter.setCreator(optionalClient.get());
         Chapter addedChapter = chapterRepository.save(chapter);
         return ResponseEntity.ok(addedChapter);
+    }
+
+    @PreAuthorize("hasRole('ADMIN')")
+    @DeleteMapping("/delete/{chapterId}")
+    public ResponseEntity<?> deleteChapter(@PathVariable Integer chapterId) {
+        if (chapterRepository.findById(chapterId).isEmpty()) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Chapter with id " + chapterId + " not found");
+        }
+        chapterRepository.deleteById(chapterId);
+        return ResponseEntity.ok("Chapter with id " + chapterId + " deleted successfully");
     }
 
     @GetMapping("/get/all")

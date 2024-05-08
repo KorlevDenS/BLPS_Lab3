@@ -16,7 +16,6 @@ import java.util.Set;
 @Table(name = "role")
 public class Role {
     @Id
-    @JsonIgnore
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @ColumnDefault("nextval('role_id_seq'")
     @Column(name = "id", nullable = false)

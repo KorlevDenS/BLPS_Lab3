@@ -1,5 +1,6 @@
 package org.korolev.dens.blps_lab1.entites;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
@@ -11,6 +12,7 @@ import org.hibernate.annotations.OnDeleteAction;
 @Entity
 @Table(name = "permission")
 public class Permission {
+    @JsonIgnore
     @EmbeddedId
     private PermissionId id;
 

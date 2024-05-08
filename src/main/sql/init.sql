@@ -25,6 +25,13 @@ create table topic (
     created DATE not null
 );
 
+create table image (
+    id serial primary key,
+    topic integer references topic on delete cascade not null,
+    link varchar,
+    created DATE not null
+);
+
 create table rating (
     id serial primary key,
     creator integer references client,
@@ -39,7 +46,7 @@ create table comment (
     commentator integer references client,
     created DATE not null,
     quote int references comment,
-    topic integer references topic
+    topic integer references topic on delete cascade
 );
 
 create table notification (
@@ -47,12 +54,12 @@ create table notification (
     recipient integer references client on delete cascade not null,
     initiator integer references client,
     description varchar default '' not null,
-    topic integer references topic
+    topic integer references topic on delete cascade
 );
 
 create table subscription (
     client integer references client on delete cascade not null,
-    topic integer references topic,
+    topic integer references topic on delete cascade,
     primary key(client, topic)
 );
 
@@ -62,6 +69,7 @@ create table role (
 );
 
 insert into role (name) values ('ROLE_USER');
+insert into role (name) values ('ROLE_MODER');
 insert into role (name) values ('ROLE_ADMIN');
 
 create table permission (

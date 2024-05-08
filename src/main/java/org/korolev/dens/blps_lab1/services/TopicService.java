@@ -1,10 +1,8 @@
 package org.korolev.dens.blps_lab1.services;
 
+import jakarta.annotation.Nullable;
 import org.korolev.dens.blps_lab1.entites.*;
-import org.korolev.dens.blps_lab1.repositories.ClientRepository;
-import org.korolev.dens.blps_lab1.repositories.RatingRepository;
-import org.korolev.dens.blps_lab1.repositories.SubscriptionRepository;
-import org.korolev.dens.blps_lab1.repositories.TopicRepository;
+import org.korolev.dens.blps_lab1.repositories.*;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
@@ -12,10 +10,14 @@ import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.TransactionDefinition;
 import org.springframework.transaction.support.TransactionCallback;
 import org.springframework.transaction.support.TransactionTemplate;
+import org.springframework.web.multipart.MultipartFile;
 
-import java.util.NoSuchElementException;
-import java.util.Objects;
-import java.util.Optional;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.time.LocalDate;
+import java.util.*;
 
 @Service
 public class TopicService {
@@ -25,18 +27,69 @@ public class TopicService {
     private final TopicRepository topicRepository;
     private final SubscriptionRepository subscriptionRepository;
     private final RatingRepository ratingRepository;
+    private final ChapterRepository chapterRepository;
+    private final ImageRepository imageRepository;
 
 
     public TopicService(PlatformTransactionManager platformTransactionManager, ClientRepository clientRepository,
                         TopicRepository topicRepository, SubscriptionRepository subscriptionRepository,
-                        RatingRepository ratingRepository) {
+                        RatingRepository ratingRepository, ChapterRepository chapterRepository, ImageRepository imageRepository) {
         this.transactionTemplate = new TransactionTemplate(platformTransactionManager);
         this.clientRepository = clientRepository;
         this.topicRepository = topicRepository;
         this.subscriptionRepository = subscriptionRepository;
         this.ratingRepository = ratingRepository;
+        this.chapterRepository = chapterRepository;
+        this.imageRepository = imageRepository;
         this.transactionTemplate.setIsolationLevel(TransactionDefinition.ISOLATION_SERIALIZABLE);
 
+    }
+
+    public ResponseEntity<?> add(Topic topic, Integer chapterId, String login, @Nullable MultipartFile img1,
+                                 @Nullable MultipartFile img2, @Nullable MultipartFile img3) {
+        return transactionTemplate.execute((TransactionCallback<ResponseEntity<?>>) status -> {
+            Optional<Chapter> optionalChapter = chapterRepository.findById(chapterId);
+            Optional<Client> optionalClient = clientRepository.findByLogin(login);
+            if (optionalClient.isEmpty()) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Пользователь не авторизован");
+            } else if (optionalChapter.isEmpty()) {
+                return ResponseEntity.status(HttpStatus.NOT_FOUND).body("No chapter with id " + chapterId);
+            }
+            topic.setOwner(optionalClient.get());
+            topic.setChapter(optionalChapter.get());
+            Topic addedTopic = topicRepository.save(topic);
+
+            List<String> imgLinks = new ArrayList<>();
+            try {
+                if (img1 != null) {
+                    imgLinks.add(uploadImage(img1, 1, addedTopic.getId()).toString());
+                }
+                if (img2 != null) {
+                    imgLinks.add(uploadImage(img2, 2, addedTopic.getId()).toString());
+                }
+                if (img3 != null) {
+                    imgLinks.add(uploadImage(img3, 3, addedTopic.getId()).toString());
+                }
+            } catch (IOException e) {
+                status.setRollbackOnly();
+                return ResponseEntity.status(HttpStatus.CONFLICT)
+                        .body("Unable to save topic because we cannot upload the image");
+            }
+            for (String imgLink : imgLinks) {
+                Image image = new Image();
+                image.setTopic(addedTopic);
+                image.setLink(imgLink);
+                image.setCreated(LocalDate.now());
+                imageRepository.save(image);
+            }
+            return ResponseEntity.ok("DOWNLOAD COMPLETE");
+        });
+    }
+
+    private Path uploadImage(MultipartFile img, int i, int id) throws IOException {
+        String storage = System.getenv("PHOTO_STORAGE") + "//";
+        Path imagePath = Paths.get(storage  + "t" + id + "_i" + i + img.getOriginalFilename());
+        return Files.write(imagePath, img.getBytes());
     }
 
     public ResponseEntity<?> subscribe(Integer topicId, String login) {

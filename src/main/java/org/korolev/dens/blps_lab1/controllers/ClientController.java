@@ -1,9 +1,10 @@
 package org.korolev.dens.blps_lab1.controllers;
 
-import org.korolev.dens.blps_lab1.entites.Client;
-import org.korolev.dens.blps_lab1.entites.Notification;
+import org.korolev.dens.blps_lab1.entites.*;
 import org.korolev.dens.blps_lab1.repositories.ClientRepository;
 import org.korolev.dens.blps_lab1.repositories.NotificationRepository;
+import org.korolev.dens.blps_lab1.repositories.PermissionRepository;
+import org.korolev.dens.blps_lab1.repositories.RoleRepository;
 import org.korolev.dens.blps_lab1.requests.ClientLoginRequest;
 import org.korolev.dens.blps_lab1.responces.JwtAuthenticationResponse;
 import org.korolev.dens.blps_lab1.security.ClientService;
@@ -31,15 +32,20 @@ public class ClientController {
     private final NotificationRepository notificationRepository;
 
     private final ClientService clientService;
+    private final RoleRepository roleRepository;
+    private final PermissionRepository permissionRepository;
 
     public ClientController(AuthenticationManager authenticationManager,
                             ClientRepository clientRepository, JwtTokenService jwtTokenService,
-                            NotificationRepository notificationRepository, ClientService clientService) {
+                            NotificationRepository notificationRepository, ClientService clientService,
+                            RoleRepository roleRepository, PermissionRepository permissionRepository) {
         this.clientService = clientService;
         this.clientRepository = clientRepository;
         this.jwtTokenService = jwtTokenService;
         this.notificationRepository = notificationRepository;
         this.authenticationManager = authenticationManager;
+        this.roleRepository = roleRepository;
+        this.permissionRepository = permissionRepository;
     }
 
     @PostMapping("/register")
@@ -54,6 +60,65 @@ public class ClientController {
         ));
         return ResponseEntity
                 .ok(new JwtAuthenticationResponse(jwtTokenService.generateToken(clientLoginRequest.login())));
+    }
+
+    @PreAuthorize("hasRole('ADMIN')")
+    @GetMapping("/get/roles")
+    public List<Role> getRoles() {
+        return roleRepository.findAll();
+    }
+
+    @PreAuthorize("hasRole('ADMIN')")
+    @PutMapping("/give/role/{clientLogin}/{roleId}")
+    public ResponseEntity<?> giveRole(@PathVariable String clientLogin, @PathVariable Integer roleId) {
+        Optional<Client> client = clientRepository.findByLogin(clientLogin);
+        if (client.isEmpty()) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Client not found");
+        }
+        Optional<Role> role = roleRepository.findById(roleId);
+        if (role.isEmpty()) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Role not found");
+        }
+        if (client.get().getRoles().stream().map(Role::getId).toList().contains(roleId)) {
+            return ResponseEntity.status(HttpStatus.CONFLICT).body("Client already has this role");
+        }
+        PermissionId permissionId = new PermissionId();
+        permissionId.setClient(client.get().getId());
+        permissionId.setRole(roleId);
+        Permission permission = new Permission();
+        permission.setId(permissionId);
+        permission.setClient(client.get());
+        permission.setRole(role.get());
+        Permission savedPermission = permissionRepository.save(permission);
+        return ResponseEntity.ok(savedPermission);
+    }
+
+    @PreAuthorize("hasRole('ADMIN')")
+    @DeleteMapping("/strip/role/{clientLogin}/{roleId}")
+    public ResponseEntity<?> stripRole(@PathVariable String clientLogin, @PathVariable Integer roleId) {
+        Optional<Role> role = roleRepository.findById(roleId);
+        if (role.isEmpty()) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Role not found");
+        }
+        Optional<Client> client = clientRepository.findByLogin(clientLogin);
+        if (client.isEmpty()) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Client not found");
+        }
+        if (!client.get().getRoles().stream().map(Role::getId).toList().contains(roleId)) {
+            return ResponseEntity.status(HttpStatus.CONFLICT).body("User does not have this role ");
+        }
+        PermissionId permissionId = new PermissionId();
+        permissionId.setClient(client.get().getId());
+        permissionId.setRole(role.get().getId());
+        permissionRepository.deleteById(permissionId);
+        return ResponseEntity
+                .ok("Role " + role.get().getName() + " deleted from client " + clientLogin + " successfully");
+    }
+
+    @PreAuthorize("hasRole('MODER')")
+    @GetMapping("/get/clients")
+    public List<Client> getClients() {
+        return clientRepository.findAll();
     }
 
     @PreAuthorize("hasRole('USER')")
