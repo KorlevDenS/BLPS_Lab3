@@ -79,12 +79,6 @@ public class TopicController {
     @PreAuthorize("hasRole('MODER')")
     @DeleteMapping("/delete/{topicId}")
     public ResponseEntity<?> deleteTopic(@PathVariable Integer topicId) {
-
-//        if (topicRepository.findById(topicId).isEmpty()) {
-//            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Topic with id " + topicId + " not found");
-//        }
-//        topicRepository.deleteById(topicId);
-//        return ResponseEntity.ok("Topic with id " + topicId + " deleted successfully");
         return topicService.delete(topicId);
     }
 
