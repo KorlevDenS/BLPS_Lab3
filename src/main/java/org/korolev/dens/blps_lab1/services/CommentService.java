@@ -37,32 +37,50 @@ public class CommentService {
 
     public ResponseEntity<?> comment(String login, Integer topicId, Integer quoteId, Comment comment) {
         return transactionTemplate.execute(status -> {
-            if (quoteId > 0) {
-                Optional<Comment> optionalComment = commentRepository.findById(quoteId);
-                if (optionalComment.isEmpty()) {
-                    return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Комментарий для цитирования не существует");
+            Comment addedComment;
+            try {
+                if (quoteId > 0) {
+                    Optional<Comment> optionalComment = commentRepository.findById(quoteId);
+                    if (optionalComment.isEmpty()) {
+                        return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Комментарий для цитирования не существует");
+                    }
+                    comment.setQuote(optionalComment.get());
                 }
-                comment.setQuote(optionalComment.get());
-            }
-            Optional<Topic> optionalTopic = topicRepository.findById(topicId);
-            Optional<Client> optionalClient = clientRepository.findByLogin(login);
-            if (optionalClient.isEmpty()) {
-                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Пользователь не авторизован");
-            } else if (optionalTopic.isEmpty()) {
-                return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Тема не существует");
-            }
-            comment.setCommentator(optionalClient.get());
-            comment.setTopic(optionalTopic.get());
-            Comment addedComment = commentRepository.save(comment);
-            List<Subscription> subscriptions = subscriptionRepository.findAllByTopic(optionalTopic.get());
-            for (Subscription subscription : subscriptions) {
-                Notification notification = new Notification();
-                notification.setTopic(optionalTopic.get());
-                notification.setInitiator(optionalClient.get());
-                notification.setRecipient(subscription.getClient());
-                notification.setDescription("Пользователь " + optionalClient.get().getLogin()
-                        + " добавил комментарий к теме " + optionalTopic.get().getTitle());
-                notificationRepository.save(notification);
+                Optional<Topic> optionalTopic = topicRepository.findById(topicId);
+                Optional<Client> optionalClient = clientRepository.findByLogin(login);
+                if (optionalClient.isEmpty()) {
+                    return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Пользователь не авторизован");
+                } else if (optionalTopic.isEmpty()) {
+                    return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Тема не существует");
+                }
+                comment.setCommentator(optionalClient.get());
+                comment.setTopic(optionalTopic.get());
+                try {
+                    addedComment = commentRepository.save(comment);
+                } catch (Exception e) {
+                    status.setRollbackOnly();
+                    return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                            .body("Comment was not saved to data base");
+                }
+                List<Subscription> subscriptions = subscriptionRepository.findAllByTopic(optionalTopic.get());
+                for (Subscription subscription : subscriptions) {
+                    Notification notification = new Notification();
+                    notification.setTopic(optionalTopic.get());
+                    notification.setInitiator(optionalClient.get());
+                    notification.setRecipient(subscription.getClient());
+                    notification.setDescription("Пользователь " + optionalClient.get().getLogin()
+                            + " добавил комментарий к теме " + optionalTopic.get().getTitle());
+                    try {
+                        notificationRepository.save(notification);
+                    } catch (Exception e) {
+                        status.setRollbackOnly();
+                        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                                .body("Could not send notification to subscribers");
+                    }
+                }
+            } catch (Exception e) {
+                status.setRollbackOnly();
+                return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Comment was not added");
             }
             return ResponseEntity.ok(addedComment);
         });
