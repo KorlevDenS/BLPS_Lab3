@@ -1,0 +1,31 @@
+services:
+  postgres:
+    image: 'postgres:latest'
+    environment:
+      - 'POSTGRES_DB=jdbc:postgresql://localhost:5432/postgres'
+      - 'POSTGRES_PASSWORD=11gramgim'
+      - 'POSTGRES_USER=postgres'
+    ports:
+      - "5432:5432"
+  my-app:
+    build: .
+    restart: always
+    volumes:
+      - .:/app
+    ports:
+      - 8177:8177
+  my-micro:
+    build: ./NotificationService
+    restart: always
+    volumes:
+      - ./NotificationService:/app
+    ports:
+      - 8080:8080
+  localRabbitMQ:
+    image: rabbitmq:3-management-alpine
+    environment:
+      RABBITMQ_DEFAULT_USER: user
+      RABBITMQ_DEFAULT_PASS: password
+    ports:
+      - 5672:5672
+      - 15672:15672
