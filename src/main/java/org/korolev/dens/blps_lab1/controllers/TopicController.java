@@ -3,6 +3,8 @@ package org.korolev.dens.blps_lab1.controllers;
 import jakarta.annotation.Nullable;
 import org.korolev.dens.blps_lab1.entites.*;
 import org.korolev.dens.blps_lab1.repositories.*;
+import org.korolev.dens.blps_lab1.requests.StatsMessage;
+import org.korolev.dens.blps_lab1.services.MessageProducer;
 import org.korolev.dens.blps_lab1.services.TopicService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -22,17 +24,19 @@ public class TopicController {
     private final TopicRepository topicRepository;
     private final ChapterRepository chapterRepository;
     private final RatingRepository ratingRepository;
-
     private final TopicService topicService;
+
+    private final MessageProducer messageProducer;
 
 
     public TopicController(TopicRepository topicRepository,
                            ChapterRepository chapterRepository, RatingRepository ratingRepository,
-                           TopicService topicService) {
+                           TopicService topicService, MessageProducer messageProducer) {
         this.topicRepository = topicRepository;
         this.chapterRepository = chapterRepository;
         this.ratingRepository = ratingRepository;
         this.topicService = topicService;
+        this.messageProducer = messageProducer;
     }
 
     @PostMapping("/multi")
@@ -59,6 +63,8 @@ public class TopicController {
         if (optionalTopic.isEmpty()) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body("No topic with id " + topicId);
         }
+        messageProducer.sendMessage(new StatsMessage(
+                optionalTopic.get().getId(), "", "watch", optionalTopic.get().getOwner().getLogin()));
         return ResponseEntity.ok(optionalTopic.get());
     }
 

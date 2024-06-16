@@ -2,11 +2,19 @@ services:
   postgres:
     image: 'postgres:latest'
     environment:
-      - 'POSTGRES_DB=jdbc:postgresql://localhost:5432/postgres'
+      - 'POSTGRES_DB=db1'
       - 'POSTGRES_PASSWORD=11gramgim'
       - 'POSTGRES_USER=postgres'
     ports:
       - "5432:5432"
+  postgres2:
+    image: 'postgres:latest'
+    environment:
+      - 'POSTGRES_DB=db2'
+      - 'POSTGRES_PASSWORD=11gramgim'
+      - 'POSTGRES_USER=postgres'
+    ports:
+      - "5433:5432"
   my-app:
     build: .
     restart: always
@@ -22,10 +30,22 @@ services:
     ports:
       - 8080:8080
   localRabbitMQ:
-    image: rabbitmq:3-management-alpine
+    hostname: localRabbitMQ
+    image: rabbitmq:management
     environment:
       RABBITMQ_DEFAULT_USER: user
       RABBITMQ_DEFAULT_PASS: password
     ports:
       - 5672:5672
       - 15672:15672
+      - 1883:1883
+#  localRabbitMQ:
+#    image: rabbitmq:3-management-alpine
+#    environment:
+#      RABBITMQ_PLUGINS: rabbitmq_mqtt
+#      RABBITMQ_DEFAULT_USER: user
+#      RABBITMQ_DEFAULT_PASS: password
+#    ports:
+#      - 5672:5672    # TCP listener
+#      - 15672:15672  # HTTP listener
+#      - 1883:1883    # port for MQTT
