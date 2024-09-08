@@ -22,6 +22,8 @@ public class Client {
     @Column(name = "rating")
     private Double rating;
 
+    //TODO: Add activity rating
+
     @JsonIgnore
     @OneToMany(mappedBy = "owner")
     private Set<Topic> topics = new LinkedHashSet<>();

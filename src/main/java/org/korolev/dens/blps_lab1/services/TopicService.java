@@ -225,7 +225,7 @@ public class TopicService {
             } catch (Exception e) {
                 status.setRollbackOnly();
                 return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                        .body("Topic was not deleted");
+                        .body("Topic was not added");
             }
             return ResponseEntity.ok(addedTopic);
         });

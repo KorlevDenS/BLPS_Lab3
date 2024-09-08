@@ -21,12 +21,36 @@ public class Topic {
     private Integer views;
 
     @ColumnDefault("0")
+    @Column(name = "temporal_views")
+    private Integer temporal_views;
+
+    @ColumnDefault("0")
+    @Column(name = "temporal_comments")
+    private Integer temporal_comments;
+
+    @ColumnDefault("0.0")
+    @Column(name = "temporal_fame")
+    private Double temporal_fame;
+
+    @ColumnDefault("0.0")
     @Column(name = "fame")
-    private Integer fame;
+    private Double fame;
 
     @ManyToOne
     @OnDelete(action = OnDeleteAction.CASCADE)
     @JoinColumn(name = "owner")
     private Client owner;
+
+    @Override
+    public String toString() {
+        return "Topic{" +
+                "id=" + id +
+                ", views=" + views +
+                ", temporal_views=" + temporal_views +
+                ", temporal_comments=" + temporal_comments +
+                ", temporal_fame=" + temporal_fame +
+                ", fame=" + fame +
+                '}';
+    }
 
 }

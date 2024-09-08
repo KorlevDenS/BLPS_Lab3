@@ -99,6 +99,12 @@ public class TopicController {
     @PostMapping("/add/rating/{topicId}")
     public ResponseEntity<?> addRating(@RequestBody @Validated Rating rating, @PathVariable Integer topicId,
                                        @AuthenticationPrincipal UserDetails userDetails) {
+        Optional<Topic> optionalTopic = topicRepository.findById(topicId);
+        if (optionalTopic.isEmpty()) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("No topic with id " + topicId);
+        }
+        messageProducer.sendMessage(new StatsMessage(
+                optionalTopic.get().getId(), userDetails.getUsername(), rating.getRating().toString(), optionalTopic.get().getOwner().getLogin()));
         return topicService.rate(rating, topicId, userDetails.getUsername());
     }
 

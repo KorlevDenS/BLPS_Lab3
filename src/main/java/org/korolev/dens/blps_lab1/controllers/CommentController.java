@@ -1,11 +1,7 @@
 package org.korolev.dens.blps_lab1.controllers;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import org.korolev.dens.blps_lab1.configuration.RabbitConfig;
 import org.korolev.dens.blps_lab1.entites.*;
 import org.korolev.dens.blps_lab1.repositories.*;
-import org.korolev.dens.blps_lab1.requests.StatsMessage;
 import org.korolev.dens.blps_lab1.services.CommentService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -24,27 +20,12 @@ public class CommentController {
     private final CommentRepository commentRepository;
     private final CommentService commentService;
 
-    private final RabbitConfig.MQTTGateway mqttGateway;
-
 
     public CommentController(TopicRepository topicRepository, CommentRepository commentRepository,
-                             CommentService commentService, RabbitConfig.MQTTGateway mqttGateway) {
+                             CommentService commentService) {
         this.topicRepository = topicRepository;
         this.commentRepository = commentRepository;
         this.commentService = commentService;
-        this.mqttGateway = mqttGateway;
-    }
-
-    @GetMapping("/test/message")
-    public ResponseEntity<?> testMessage() {
-        ObjectMapper jsonMapper = new ObjectMapper();
-        StatsMessage messageObj = new StatsMessage(1, "user1", "comment", "user0");
-        try {
-            mqttGateway.sendToMqtt(jsonMapper.writeValueAsString(messageObj));
-        } catch (JsonProcessingException e) {
-            return ResponseEntity.ok("Bad");
-        }
-        return ResponseEntity.ok("Good");
     }
 
     @GetMapping("/get/all/by/topic/{topicId}")

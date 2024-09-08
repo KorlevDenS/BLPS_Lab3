@@ -21,14 +21,15 @@ services:
     volumes:
       - .:/app
     ports:
-      - 8177:8177
+      - "8177:8177"
   my-micro:
     build: ./NotificationService
     restart: always
     volumes:
       - ./NotificationService:/app
     ports:
-      - 8080:8080
+      - "8080:8080"
+
   localRabbitMQ:
     hostname: localRabbitMQ
     image: rabbitmq:management
@@ -36,9 +37,9 @@ services:
       RABBITMQ_DEFAULT_USER: user
       RABBITMQ_DEFAULT_PASS: password
     ports:
-      - 5672:5672
-      - 15672:15672
-      - 1883:1883
+      - "5672:5672"
+      - "15672:15672"
+      - "1883:1883"
 #  localRabbitMQ:
 #    image: rabbitmq:3-management-alpine
 #    environment:
