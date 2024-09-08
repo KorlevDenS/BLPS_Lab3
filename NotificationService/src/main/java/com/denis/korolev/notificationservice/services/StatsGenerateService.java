@@ -36,9 +36,7 @@ public class StatsGenerateService {
         } catch (JsonProcessingException e) {
             throw new RuntimeException(e);
         }
-
         Client ownerClient = installClient(statsMessage.getTopicOwner());
-        //Client producer = installClient(statsMessage.getProducer());
 
         Optional<Topic> optionalTopic = topicRepository.findById(statsMessage.getTopicId());
         Topic topic;
@@ -58,11 +56,11 @@ public class StatsGenerateService {
 
         switch (statsMessage.getProducerAction()) {
             case "watch" -> processWatch(topic, ownerClient);
-            case "comment" -> processComment(topic, ownerClient, statsMessage.getProducer());
-            case "1", "2", "3", "4", "5", "6", "7", "8", "9", "10" -> processRate(topic, ownerClient,
-                    statsMessage.getProducer(), statsMessage.getProducerAction());
-            case "add" -> processAdd(topic, ownerClient);
-            case "delete" -> processDelete(statsMessage);
+            case "comment" -> processComment(topic, statsMessage.getProducer());
+            case "1", "2", "3", "4", "5", "6", "7", "8", "9", "10" -> processRate(topic, statsMessage.getProducer(),
+                    statsMessage.getProducerAction());
+            case "add" -> processAdd(ownerClient);
+            case "delete" -> processDelete(topic);
             default -> System.out.println("Wrong message");
         }
     }
@@ -74,6 +72,7 @@ public class StatsGenerateService {
             Client newClient = new Client();
             newClient.setLogin(login);
             newClient.setRating(1.0);
+            newClient.setActivity(1);
             client = clientRepository.save(newClient);
         } else {
             client = optionalClient.get();
@@ -82,22 +81,22 @@ public class StatsGenerateService {
     }
 
     private void processWatch(Topic topic, Client owner) {
-//        topicRepository.updateViewsById(topic.getId(), topic.getViews() + 1);
-//        topicRepository.updateFameById(topic.getId(), topic.getFame() + 1);
-//        clientRepository.updateRatingById(owner.getLogin(), owner.getRating() + 0.1);
         topic.setViews(topic.getViews() + 1);
         topic.setTemporal_views(topic.getTemporal_views() + 1);
         topicRepository.save(topic);
+        owner.setActivity(owner.getActivity() + 1);
+        clientRepository.save(owner);
     }
 
-    private void processComment(Topic topic, Client owner, String producerLogin) {
+    private void processComment(Topic topic, String producerLogin) {
         Client producer = installClient(producerLogin);
-        clientRepository.updateRatingById(owner.getLogin(), owner.getRating() + 0.5);
-        //topicRepository.updateFameById(topic.getId(), topic.getFame() + 3);
-        clientRepository.updateRatingById(producer.getLogin(), producer.getRating() + 1);
+        topic.setTemporal_comments(topic.getTemporal_comments() + 1);
+        topicRepository.save(topic);
+        producer.setActivity(producer.getActivity() + 4);
+        clientRepository.save(producer);
     }
 
-    private void processRate(Topic topic, Client owner, String producerLogin, String strRating) {
+    private void processRate(Topic topic, String producerLogin, String strRating) {
         Client producer = installClient(producerLogin);
         Rating rating;
         Optional<Rating> oldRating = ratingRepository.findByCreatorAndTopic(producer, topic);
@@ -106,15 +105,18 @@ public class StatsGenerateService {
         rating.setTopic(topic);
         rating.setRating(Integer.parseInt(strRating));
         ratingRepository.save(rating);
+        producer.setActivity(producer.getActivity() + 2);
+        clientRepository.save(producer);
     }
 
-    private void processAdd(Topic topic, Client owner) {
-        //topicRepository.updateFameById(topic.getId(), topic.getFame() + 10);
-        clientRepository.updateRatingById(owner.getLogin(), owner.getRating() + 5);
+    private void processAdd(Client owner) {
+        owner.setActivity(owner.getActivity() + 10);
+        clientRepository.save(owner);
     }
 
-    private void processDelete(StatsMessage statsMessage) {
-
+    private void processDelete(Topic topic) {
+        ratingRepository.removeAllByTopic(topic);
+        topicRepository.delete(topic);
     }
 
 }

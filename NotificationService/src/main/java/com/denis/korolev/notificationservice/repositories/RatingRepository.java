@@ -13,4 +13,6 @@ public interface RatingRepository extends JpaRepository<Rating, Integer> {
     List<Rating> findAllByTopic(Topic topic);
 
     Optional<Rating> findByCreatorAndTopic(Client creator, Topic topic);
+
+    void removeAllByTopic(Topic topic);
 }

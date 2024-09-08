@@ -53,6 +53,9 @@ public class RatingComputingService {
         }
     }
 
+    /// 0.5 <= k <= 1;
+    /// 1 <= a <= 2;
+    /// 2 <= b <= 3;
     @Scheduled(cron = "0 30 * * * ?")
     public void updateTopicRatings() {
         List<Topic> allTopics = topicRepository.findAll();
@@ -72,7 +75,7 @@ public class RatingComputingService {
             double b;
             try {
                 k = calcNorm(topic.getTemporal_views() + topic.getTemporal_comments(), temporalViewsComments, 0)
-                * (1 - 0.01) + (0.01 / 2);
+                        / 2 + 0.5;
             } catch (RatingComputeException e) {
                 k = 1;
             }

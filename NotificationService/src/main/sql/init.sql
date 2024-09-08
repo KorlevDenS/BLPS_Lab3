@@ -1,6 +1,7 @@
 create table client (
     login varchar primary key,
-    rating double precision default 1
+    rating double precision default 1,
+    activity integer default 1
 );
 
 create table topic (

@@ -22,7 +22,9 @@ public class Client {
     @Column(name = "rating")
     private Double rating;
 
-    //TODO: Add activity rating
+    @ColumnDefault("1")
+    @Column(name = "activity")
+    private Integer activity;
 
     @JsonIgnore
     @OneToMany(mappedBy = "owner")
