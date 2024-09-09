@@ -2,6 +2,7 @@ package org.korolev.dens.blps_lab1.services;
 
 import org.korolev.dens.blps_lab1.entites.*;
 import org.korolev.dens.blps_lab1.repositories.*;
+import org.korolev.dens.blps_lab1.requests.StatsMessage;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
@@ -21,10 +22,11 @@ public class CommentService {
     private final ClientRepository clientRepository;
     private final SubscriptionRepository subscriptionRepository;
     private final NotificationRepository notificationRepository;
+    private final MessageProducer messageProducer;
 
     public CommentService(PlatformTransactionManager platformTransactionManager, CommentRepository commentRepository,
                           TopicRepository topicRepository, ClientRepository clientRepository,
-                          SubscriptionRepository subscriptionRepository, NotificationRepository notificationRepository) {
+                          SubscriptionRepository subscriptionRepository, NotificationRepository notificationRepository, MessageProducer messageProducer) {
         this.transactionTemplate = new TransactionTemplate(platformTransactionManager);
         this.subscriptionRepository = subscriptionRepository;
         this.notificationRepository = notificationRepository;
@@ -32,12 +34,14 @@ public class CommentService {
         this.commentRepository = commentRepository;
         this.topicRepository = topicRepository;
         this.clientRepository = clientRepository;
+        this.messageProducer = messageProducer;
     }
 
 
     public ResponseEntity<?> comment(String login, Integer topicId, Integer quoteId, Comment comment) {
         return transactionTemplate.execute(status -> {
             Comment addedComment;
+            Client topicOwner;
             try {
                 if (quoteId > 0) {
                     Optional<Comment> optionalComment = commentRepository.findById(quoteId);
@@ -53,6 +57,7 @@ public class CommentService {
                 } else if (optionalTopic.isEmpty()) {
                     return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Тема не существует");
                 }
+                topicOwner = optionalTopic.get().getOwner();
                 comment.setCommentator(optionalClient.get());
                 comment.setTopic(optionalTopic.get());
                 try {
@@ -82,6 +87,7 @@ public class CommentService {
                 status.setRollbackOnly();
                 return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Comment was not added");
             }
+            messageProducer.sendMessage(new StatsMessage(topicId, login, "comment", topicOwner.getLogin()));
             return ResponseEntity.ok(addedComment);
         });
     }

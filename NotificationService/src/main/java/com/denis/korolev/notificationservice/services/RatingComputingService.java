@@ -7,11 +7,13 @@ import com.denis.korolev.notificationservice.entities.Topic;
 import com.denis.korolev.notificationservice.repositories.ClientRepository;
 import com.denis.korolev.notificationservice.repositories.RatingRepository;
 import com.denis.korolev.notificationservice.repositories.TopicRepository;
+import jakarta.transaction.Transactional;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.NoSuchElementException;
 import java.util.OptionalDouble;
 
 @Service
@@ -43,7 +45,8 @@ public class RatingComputingService {
         return (x - min) / (max - min) + offset;
     }
 
-    @Scheduled(cron = "0 30 * * * ?")
+    @Scheduled(cron = "0 18 * * * ?")
+    @Transactional
     public void updateClientRating() {
         List<Client> allClients = clientRepository.findAll();
         for (Client client : allClients) {
@@ -56,19 +59,26 @@ public class RatingComputingService {
     /// 0.5 <= k <= 1;
     /// 1 <= a <= 2;
     /// 2 <= b <= 3;
-    @Scheduled(cron = "0 30 * * * ?")
+    @Scheduled(cron = "0 0 * * * ?")
     public void updateTopicRatings() {
         List<Topic> allTopics = topicRepository.findAll();
         List<Double> ratingAVGs = allTopics.stream().map(topic -> ratingRepository.findAllByTopic(topic).stream()
                 .map(Rating::getRating).mapToInt(Integer::intValue).average()).filter(OptionalDouble::isPresent)
                 .map(OptionalDouble::getAsDouble).toList();
-        double ratingAvgMin = Collections.min(ratingAVGs);
-        double ratingAvgMax = Collections.max(ratingAVGs);
+        double ratingAvgMin;
+        double ratingAvgMax;
+        try {
+            ratingAvgMin = Collections.min(ratingAVGs);
+            ratingAvgMax = Collections.max(ratingAVGs);
+        } catch (NoSuchElementException e) {
+            ratingAvgMin = 1;
+            ratingAvgMax = 1;
+            System.out.println("Still empty rating list. Impossible to calculate min and max!");
+        }
         List<Integer> temporalViewsAll = allTopics.stream().map(Topic::getTemporal_views).toList();
         List<Integer> temporalCommentsAll = allTopics.stream().map(Topic::getTemporal_comments).toList();
         List<Integer> temporalViewsComments = allTopics.stream()
                 .map(t -> t.getTemporal_comments() + t.getTemporal_views()).toList();
-
         for (Topic topic : allTopics) {
             double k;
             double a;

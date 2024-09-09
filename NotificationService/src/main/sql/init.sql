@@ -18,5 +18,5 @@ create table rating (
     id serial primary key,
     creator varchar references client,
     topic integer references topic on delete cascade not null,
-    rating integer
+    rating integer default 0
 );

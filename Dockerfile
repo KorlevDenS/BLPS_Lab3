@@ -7,4 +7,8 @@ RUN mvn dependency:go-offline
 
 COPY . .
 
+CMD ["mkdir", "/app/storage"]
+
+ENV PHOTO_STORAGE=/app/storage
+
 CMD ["java", "-jar", "target/BLPS_Lab1-0.0.1-SNAPSHOT.jar"]

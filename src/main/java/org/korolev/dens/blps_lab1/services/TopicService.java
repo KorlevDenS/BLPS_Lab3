@@ -4,6 +4,7 @@ import jakarta.annotation.Nullable;
 import org.korolev.dens.blps_lab1.entites.*;
 import org.korolev.dens.blps_lab1.exceptions.ImagesBackupException;
 import org.korolev.dens.blps_lab1.repositories.*;
+import org.korolev.dens.blps_lab1.requests.StatsMessage;
 import org.springframework.data.util.Pair;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -31,11 +32,12 @@ public class TopicService {
     private final RatingRepository ratingRepository;
     private final ChapterRepository chapterRepository;
     private final ImageRepository imageRepository;
+    private final MessageProducer messageProducer;
 
 
     public TopicService(PlatformTransactionManager platformTransactionManager, ClientRepository clientRepository,
                         TopicRepository topicRepository, SubscriptionRepository subscriptionRepository,
-                        RatingRepository ratingRepository, ChapterRepository chapterRepository, ImageRepository imageRepository) {
+                        RatingRepository ratingRepository, ChapterRepository chapterRepository, ImageRepository imageRepository, MessageProducer messageProducer) {
         this.transactionTemplate = new TransactionTemplate(platformTransactionManager);
         this.clientRepository = clientRepository;
         this.topicRepository = topicRepository;
@@ -44,7 +46,7 @@ public class TopicService {
         this.chapterRepository = chapterRepository;
         this.imageRepository = imageRepository;
         this.transactionTemplate.setIsolationLevel(TransactionDefinition.ISOLATION_SERIALIZABLE);
-
+        this.messageProducer = messageProducer;
     }
 
 
@@ -58,6 +60,7 @@ public class TopicService {
             } catch (NoSuchElementException e) {
                 return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
             }
+            Client topicOwner = topic.getOwner();
             try {
                 try {
                     backup = makeImgBackup(topic);
@@ -99,6 +102,8 @@ public class TopicService {
                         .body("Topic with id " + topicId + " was not deleted");
             }
             deleteReservedFiles(backup.getFirst());
+            messageProducer.sendMessage(new StatsMessage(topicId, "", "delete",
+                    topicOwner.getLogin()));
             return ResponseEntity.status(HttpStatus.OK).body("Topic with id " + topicId + " deleted");
         });
     }
@@ -227,6 +232,7 @@ public class TopicService {
                 return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                         .body("Topic was not added");
             }
+            messageProducer.sendMessage(new StatsMessage(addedTopic.getId(), "", "add", login));
             return ResponseEntity.ok(addedTopic);
         });
     }
@@ -352,11 +358,15 @@ public class TopicService {
                 Optional<Rating> optionalRating = ratingRepository.findRatingByCreatorAndTopic(client, topic);
                 if (optionalRating.isPresent()) {
                     ratingRepository.updateRatingByClientAndTopic(login, rating.getRating(), topicId);
+                    messageProducer.sendMessage(new StatsMessage(topicId, login, rating.getRating().toString(),
+                            topic.getOwner().getLogin()));
                     return ResponseEntity.status(HttpStatus.OK).body("Оценка успешно обновлена");
                 } else {
                     rating.setCreator(client);
                     rating.setTopic(topic);
                     Rating addedRating = ratingRepository.save(rating);
+                    messageProducer.sendMessage(new StatsMessage(topicId, login, rating.getRating().toString(),
+                            topic.getOwner().getLogin()));
                     return ResponseEntity.ok(addedRating);
                 }
             } catch (NoSuchElementException e) {

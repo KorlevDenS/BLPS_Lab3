@@ -55,7 +55,7 @@ public class StatsGenerateService {
         }
 
         switch (statsMessage.getProducerAction()) {
-            case "watch" -> processWatch(topic, ownerClient);
+            case "watch" -> processWatch(topic, statsMessage.getProducer());
             case "comment" -> processComment(topic, statsMessage.getProducer());
             case "1", "2", "3", "4", "5", "6", "7", "8", "9", "10" -> processRate(topic, statsMessage.getProducer(),
                     statsMessage.getProducerAction());
@@ -80,12 +80,15 @@ public class StatsGenerateService {
         return client;
     }
 
-    private void processWatch(Topic topic, Client owner) {
+    private void processWatch(Topic topic, String producerLogin) {
+        if (!producerLogin.isEmpty()) {
+            Client producer = installClient(producerLogin);
+            producer.setActivity(producer.getActivity() + 1);
+            clientRepository.save(producer);
+        }
         topic.setViews(topic.getViews() + 1);
         topic.setTemporal_views(topic.getTemporal_views() + 1);
         topicRepository.save(topic);
-        owner.setActivity(owner.getActivity() + 1);
-        clientRepository.save(owner);
     }
 
     private void processComment(Topic topic, String producerLogin) {

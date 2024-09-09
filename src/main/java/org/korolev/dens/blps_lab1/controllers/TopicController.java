@@ -58,13 +58,20 @@ public class TopicController {
     }
 
     @GetMapping("get/by/id/{topicId}")
-    public ResponseEntity<?> getTopicById(@PathVariable Integer topicId) {
+    public ResponseEntity<?> getTopicById(@PathVariable Integer topicId, @AuthenticationPrincipal UserDetails userDetails) {
         Optional<Topic> optionalTopic = topicRepository.findById(topicId);
         if (optionalTopic.isEmpty()) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body("No topic with id " + topicId);
         }
-        messageProducer.sendMessage(new StatsMessage(
-                optionalTopic.get().getId(), "", "watch", optionalTopic.get().getOwner().getLogin()));
+        if (userDetails == null) {
+            messageProducer.sendMessage(new StatsMessage(optionalTopic.get().getId(), "", "watch",
+                    optionalTopic.get().getOwner().getLogin()));
+            System.out.println("WATCH WITHOUT PRODUCER");
+        } else {
+            messageProducer.sendMessage(new StatsMessage(optionalTopic.get().getId(), userDetails.getUsername(),
+                    "watch", optionalTopic.get().getOwner().getLogin()));
+            System.out.println("WATCH WITH PRODUCER");
+        }
         return ResponseEntity.ok(optionalTopic.get());
     }
 
@@ -103,8 +110,6 @@ public class TopicController {
         if (optionalTopic.isEmpty()) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body("No topic with id " + topicId);
         }
-        messageProducer.sendMessage(new StatsMessage(
-                optionalTopic.get().getId(), userDetails.getUsername(), rating.getRating().toString(), optionalTopic.get().getOwner().getLogin()));
         return topicService.rate(rating, topicId, userDetails.getUsername());
     }
 
