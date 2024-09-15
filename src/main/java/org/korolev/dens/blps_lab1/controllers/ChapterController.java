@@ -43,8 +43,13 @@ public class ChapterController {
     @PreAuthorize("hasRole('ADMIN')")
     @DeleteMapping("/delete/{chapterId}")
     public ResponseEntity<?> deleteChapter(@PathVariable Integer chapterId) {
-        if (chapterRepository.findById(chapterId).isEmpty()) {
+        Optional<Chapter> chapter = chapterRepository.findById(chapterId);
+        if (chapter.isEmpty()) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Chapter with id " + chapterId + " not found");
+        }
+        if (!chapter.get().getTopics().isEmpty()) {
+            return ResponseEntity.status(HttpStatus.PRECONDITION_REQUIRED)
+                    .body("Chapter is not empty! Firstly delete all topics in it.");
         }
         chapterRepository.deleteById(chapterId);
         return ResponseEntity.ok("Chapter with id " + chapterId + " deleted successfully");
