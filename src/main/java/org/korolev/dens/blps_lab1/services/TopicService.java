@@ -2,12 +2,16 @@ package org.korolev.dens.blps_lab1.services;
 
 import jakarta.annotation.Nullable;
 import org.korolev.dens.blps_lab1.entites.*;
+import org.korolev.dens.blps_lab1.exceptions.ImageAccessException;
 import org.korolev.dens.blps_lab1.exceptions.ImagesBackupException;
 import org.korolev.dens.blps_lab1.repositories.*;
 import org.korolev.dens.blps_lab1.requests.StatsMessage;
+import org.springframework.core.io.Resource;
+import org.springframework.core.io.UrlResource;
 import org.springframework.data.util.Pair;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.TransactionDefinition;
@@ -49,6 +53,47 @@ public class TopicService {
         this.messageProducer = messageProducer;
     }
 
+    public ResponseEntity<?> findTopicById(Integer topicId, UserDetails userDetails) {
+        Optional<Topic> optionalTopic = topicRepository.findById(topicId);
+        if (optionalTopic.isEmpty()) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("No topic with id " + topicId);
+        }
+        if (userDetails == null) {
+            messageProducer.sendMessage(new StatsMessage(optionalTopic.get().getId(), "", "watch",
+                    optionalTopic.get().getOwner().getLogin()));
+            System.out.println("WATCH WITHOUT PRODUCER");
+        } else {
+            messageProducer.sendMessage(new StatsMessage(optionalTopic.get().getId(), userDetails.getUsername(),
+                    "watch", optionalTopic.get().getOwner().getLogin()));
+            System.out.println("WATCH WITH PRODUCER");
+        }
+        return ResponseEntity.ok(optionalTopic.get());
+    }
+
+    public ResponseEntity<?> findImageByURL(String URL) {
+        Resource resource;
+        try {
+            resource = getImageFromDisk(URL);
+        } catch (ImageAccessException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("No image with URL " + URL);
+        }
+        return ResponseEntity.ok(resource);
+    }
+
+    private Resource getImageFromDisk(String imageUrl) throws ImageAccessException {
+        try {
+            String storage = System.getenv("PHOTO_STORAGE");
+            Path filepath = Paths.get(storage).resolve(imageUrl);
+            Resource resource = new UrlResource(filepath.toUri());
+            if (resource.exists()) {
+                return resource;
+            } else {
+                throw new ImageAccessException("Image does not exist");
+            }
+        } catch (Exception e) {
+            throw new ImageAccessException("Cased by " + e.getClass() + ": " + e.getMessage());
+        }
+    }
 
     public ResponseEntity<?> delete(Integer topicId) {
         return transactionTemplate.execute((TransactionCallback<ResponseEntity<?>>) status -> {

@@ -58,7 +58,6 @@ public class Topic {
     @OneToMany(mappedBy = "topic")
     private Set<Rating> ratings = new LinkedHashSet<>();
 
-    @JsonIgnore
     @OneToMany(mappedBy = "topic")
     private Set<Image> images = new LinkedHashSet<>();
 

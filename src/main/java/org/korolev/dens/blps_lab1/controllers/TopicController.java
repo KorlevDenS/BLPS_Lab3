@@ -3,8 +3,6 @@ package org.korolev.dens.blps_lab1.controllers;
 import jakarta.annotation.Nullable;
 import org.korolev.dens.blps_lab1.entites.*;
 import org.korolev.dens.blps_lab1.repositories.*;
-import org.korolev.dens.blps_lab1.requests.StatsMessage;
-import org.korolev.dens.blps_lab1.services.MessageProducer;
 import org.korolev.dens.blps_lab1.services.TopicService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -26,27 +24,13 @@ public class TopicController {
     private final RatingRepository ratingRepository;
     private final TopicService topicService;
 
-    private final MessageProducer messageProducer;
-
-
     public TopicController(TopicRepository topicRepository,
                            ChapterRepository chapterRepository, RatingRepository ratingRepository,
-                           TopicService topicService, MessageProducer messageProducer) {
+                           TopicService topicService) {
         this.topicRepository = topicRepository;
         this.chapterRepository = chapterRepository;
         this.ratingRepository = ratingRepository;
         this.topicService = topicService;
-        this.messageProducer = messageProducer;
-    }
-
-    @PostMapping("/multi")
-    public void getMultipart(@RequestParam("a1") String a1,
-                             @RequestParam("a2") String a2,
-                             @RequestParam("a3") String a3,
-                             @Nullable @RequestParam("a4") MultipartFile a4) {
-        System.out.println(a1 + " " + a2 + " " + a3);
-        System.out.println(System.getenv("PHOTO_STORAGE"));
-        if (a4 == null) System.out.println("NULL IMG");
     }
 
     @GetMapping("/get/all/by/chapter/{chapterId}")
@@ -59,20 +43,12 @@ public class TopicController {
 
     @GetMapping("get/by/id/{topicId}")
     public ResponseEntity<?> getTopicById(@PathVariable Integer topicId, @AuthenticationPrincipal UserDetails userDetails) {
-        Optional<Topic> optionalTopic = topicRepository.findById(topicId);
-        if (optionalTopic.isEmpty()) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("No topic with id " + topicId);
-        }
-        if (userDetails == null) {
-            messageProducer.sendMessage(new StatsMessage(optionalTopic.get().getId(), "", "watch",
-                    optionalTopic.get().getOwner().getLogin()));
-            System.out.println("WATCH WITHOUT PRODUCER");
-        } else {
-            messageProducer.sendMessage(new StatsMessage(optionalTopic.get().getId(), userDetails.getUsername(),
-                    "watch", optionalTopic.get().getOwner().getLogin()));
-            System.out.println("WATCH WITH PRODUCER");
-        }
-        return ResponseEntity.ok(optionalTopic.get());
+        return topicService.findTopicById(topicId, userDetails);
+    }
+
+    @GetMapping("get/image/{URL}")
+    public ResponseEntity<?> getTopicImageByURL(@PathVariable String URL) {
+        return topicService.findImageByURL(URL);
     }
 
     @PreAuthorize("hasRole('USER')")

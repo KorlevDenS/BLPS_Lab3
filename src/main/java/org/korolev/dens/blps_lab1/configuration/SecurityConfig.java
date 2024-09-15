@@ -77,8 +77,8 @@ public class SecurityConfig {
                         "comment/get/all/by/topic/*",
                         "topic/get/all/by/chapter/*",
                         "topic/get/by/id/*",
-                        "topic/multi",
-                        "comment/test/message").permitAll())
+                        "comment/test/message",
+                        "topic/get/image/*").permitAll())
                 .authorizeHttpRequests(auth -> auth.anyRequest().authenticated())
                 .sessionManagement(sess -> sess.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authenticationProvider(authenticationProvider())
