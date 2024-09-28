@@ -29,6 +29,13 @@ services:
       - ./NotificationService:/app
     ports:
       - "8080:8080"
+  my-micro1:
+    build: ./NotificationService
+    restart: always
+    volumes:
+      - ./NotificationService:/app
+    ports:
+      - "8188:8080"
 
   localRabbitMQ:
     hostname: localRabbitMQ
